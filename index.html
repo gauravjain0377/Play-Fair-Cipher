@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playfair Cipher - Encryption & Decryption</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-wrapper">
+        <header class="app-header">
+            <h1 class="app-title">Playfair Cipher</h1>
+            <p class="app-subtitle">Cryptographic encryption & decryption tool</p>
+        </header>
+
+        <main class="app-main">
+            <div class="layout-container">
+                <section class="left-panel">
+                    <div class="key-section">
+                        <label for="keyInput" class="section-label">Encryption Key</label>
+                        <div class="input-group">
+                            <input 
+                                type="text" 
+                                id="keyInput" 
+                                class="text-input" 
+                                placeholder="Enter keyword (e.g., MONARCHY)" 
+                                autocomplete="off"
+                            >
+                            <button id="generateKeyBtn" class="btn btn-secondary">Generate</button>
+                        </div>
+                    </div>
+                    
+                    <div class="key-square-section">
+                        <label class="section-label">Key Square</label>
+                        <div id="keySquareDisplay" class="key-square">
+                            <p class="placeholder-text">Enter a key to generate</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="right-panel">
+                    <div class="message-section">
+                        <label for="messageInput" class="section-label">Message</label>
+                        <textarea 
+                            id="messageInput" 
+                            class="text-area" 
+                            placeholder="Enter your message here..."
+                        ></textarea>
+                    </div>
+
+                    <div class="button-group">
+                        <button id="encryptBtn" class="btn btn-primary">Encrypt</button>
+                        <button id="decryptBtn" class="btn btn-primary">Decrypt</button>
+                        <button id="clearBtn" class="btn btn-secondary">Clear</button>
+                    </div>
+
+                    <div class="result-section">
+                        <label for="resultOutput" class="section-label">Result</label>
+                        <textarea 
+                            id="resultOutput" 
+                            class="text-area result-area" 
+                            placeholder="Result will appear here..."
+                            readonly
+                        ></textarea>
+                    </div>
+                </section>
+            </div>
+
+            <div id="statusBar" class="status-bar">
+                <span id="statusText" class="status-message">Ready</span>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
