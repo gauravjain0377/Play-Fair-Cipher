@@ -10,11 +10,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class PlayfairCipherServer {
-    private static final int PORT = 8080;
+    private static final int DEFAULT_PORT = 8080;
     private HttpServer server;
+    private int port;
     
     public void start() throws IOException {
-        server = HttpServer.create(new InetSocketAddress(PORT), 0);
+        // Use PORT environment variable if set (for cloud deployment), otherwise use default
+        String envPort = System.getenv("PORT");
+        port = (envPort != null) ? Integer.parseInt(envPort) : DEFAULT_PORT;
+        
+        server = HttpServer.create(new InetSocketAddress(port), 0);
         
         server.createContext("/", new StaticFileHandler());
         
@@ -30,7 +35,7 @@ public class PlayfairCipherServer {
         System.out.println("=========================================");
         System.out.println("Playfair Cipher Server is running!");
         System.out.println("Open your browser and visit:");
-        System.out.println("http://localhost:" + PORT);
+        System.out.println("http://localhost:" + port);
         System.out.println("=========================================");
     }
     

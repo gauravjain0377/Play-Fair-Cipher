@@ -1,4 +1,5 @@
-const API_BASE_URL = 'http://localhost:8080/api';
+// Use relative URL so it works both locally and when deployed
+const API_BASE_URL = '/api';
 
 const keyInput = document.getElementById('keyInput');
 const messageInput = document.getElementById('messageInput');
