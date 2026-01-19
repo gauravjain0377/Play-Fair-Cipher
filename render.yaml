@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: playfair-cipher
-    runtime: java
-    buildCommand: javac *.java
-    startCommand: java Main
-    envVars:
-      - key: PORT
-        value: 8080

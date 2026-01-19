@@ -1,6 +1,8 @@
-// Use relative URL so it works both locally and when deployed
-const API_BASE_URL = '/api';
+// Playfair Cipher - Pure JavaScript Implementation (No Server Required)
 
+const SIZE = 5;
+
+// DOM Elements
 const keyInput = document.getElementById('keyInput');
 const messageInput = document.getElementById('messageInput');
 const resultOutput = document.getElementById('resultOutput');
@@ -13,6 +15,7 @@ const decryptBtn = document.getElementById('decryptBtn');
 const clearBtn = document.getElementById('clearBtn');
 const generateKeyBtn = document.getElementById('generateKeyBtn');
 
+// Event Listeners
 encryptBtn.addEventListener('click', handleEncrypt);
 decryptBtn.addEventListener('click', handleDecrypt);
 clearBtn.addEventListener('click', handleClear);
@@ -21,46 +24,161 @@ generateKeyBtn.addEventListener('click', handleGenerateKeySquare);
 keyInput.addEventListener('input', debounce(() => {
     if (keyInput.value.trim()) {
         handleGenerateKeySquare();
+    } else {
+        keySquareDisplay.innerHTML = '<p class="placeholder-text">Enter a key to generate</p>';
     }
-}, 500));
+}, 300));
 
-async function callAPI(endpoint, data) {
-    try {
-        const params = new URLSearchParams(data);
-        
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: params.toString()
-        });
+// ==================== PLAYFAIR CIPHER LOGIC ====================
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'API request failed');
+function generateKeySquare(key) {
+    const square = [];
+    let keyUpper = key.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
+    
+    const used = new Set();
+    const chars = [];
+    
+    // Add key characters first
+    for (const c of keyUpper) {
+        if (!used.has(c)) {
+            used.add(c);
+            chars.push(c);
         }
-
-        return await response.json();
-    } catch (error) {
-        console.error('API Error:', error);
-        throw error;
     }
+    
+    // Add remaining alphabet (excluding J)
+    for (let c = 65; c <= 90; c++) { // A-Z
+        const char = String.fromCharCode(c);
+        if (char !== 'J' && !used.has(char)) {
+            used.add(char);
+            chars.push(char);
+        }
+    }
+    
+    // Build 5x5 square
+    for (let i = 0; i < SIZE; i++) {
+        square[i] = [];
+        for (let j = 0; j < SIZE; j++) {
+            square[i][j] = chars[i * SIZE + j];
+        }
+    }
+    
+    return square;
 }
 
-async function encryptText(key, text) {
-    return await callAPI('/encrypt', { key, text });
+function getPosition(keySquare, char) {
+    const c = char === 'J' ? 'I' : char;
+    
+    for (let i = 0; i < SIZE; i++) {
+        for (let j = 0; j < SIZE; j++) {
+            if (keySquare[i][j] === c) {
+                return { row: i, col: j };
+            }
+        }
+    }
+    return null;
 }
 
-async function decryptText(key, text) {
-    return await callAPI('/decrypt', { key, text });
+function prepareText(text) {
+    let prepared = text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
+    
+    let result = '';
+    let i = 0;
+    
+    while (i < prepared.length) {
+        const first = prepared[i];
+        
+        if (i + 1 < prepared.length) {
+            const second = prepared[i + 1];
+            
+            if (first === second) {
+                result += first + 'X';
+                i++;
+            } else {
+                result += first + second;
+                i += 2;
+            }
+        } else {
+            result += first + 'Z';
+            i++;
+        }
+    }
+    
+    return result;
 }
 
-async function generateKeySquare(key) {
-    return await callAPI('/key-square', { key });
+function encrypt(keySquare, plaintext) {
+    const text = prepareText(plaintext);
+    let ciphertext = '';
+    
+    for (let i = 0; i < text.length; i += 2) {
+        const first = text[i];
+        const second = text[i + 1];
+        
+        const pos1 = getPosition(keySquare, first);
+        const pos2 = getPosition(keySquare, second);
+        
+        if (pos1 && pos2) {
+            if (pos1.row === pos2.row) {
+                // Same row: shift right
+                ciphertext += keySquare[pos1.row][(pos1.col + 1) % SIZE];
+                ciphertext += keySquare[pos2.row][(pos2.col + 1) % SIZE];
+            } else if (pos1.col === pos2.col) {
+                // Same column: shift down
+                ciphertext += keySquare[(pos1.row + 1) % SIZE][pos1.col];
+                ciphertext += keySquare[(pos2.row + 1) % SIZE][pos2.col];
+            } else {
+                // Rectangle: swap columns
+                ciphertext += keySquare[pos1.row][pos2.col];
+                ciphertext += keySquare[pos2.row][pos1.col];
+            }
+        }
+    }
+    
+    return ciphertext;
 }
 
-async function handleEncrypt() {
+function decrypt(keySquare, ciphertext) {
+    let text = ciphertext.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
+    
+    // Ensure even length
+    if (text.length % 2 !== 0) {
+        text += 'Z';
+    }
+    
+    let plaintext = '';
+    
+    for (let i = 0; i < text.length; i += 2) {
+        const first = text[i];
+        const second = text[i + 1];
+        
+        const pos1 = getPosition(keySquare, first);
+        const pos2 = getPosition(keySquare, second);
+        
+        if (pos1 && pos2) {
+            if (pos1.row === pos2.row) {
+                // Same row: shift left
+                ciphertext += keySquare[pos1.row][(pos1.col + SIZE - 1) % SIZE];
+                plaintext += keySquare[pos1.row][(pos1.col + SIZE - 1) % SIZE];
+                plaintext += keySquare[pos2.row][(pos2.col + SIZE - 1) % SIZE];
+            } else if (pos1.col === pos2.col) {
+                // Same column: shift up
+                plaintext += keySquare[(pos1.row + SIZE - 1) % SIZE][pos1.col];
+                plaintext += keySquare[(pos2.row + SIZE - 1) % SIZE][pos2.col];
+            } else {
+                // Rectangle: swap columns
+                plaintext += keySquare[pos1.row][pos2.col];
+                plaintext += keySquare[pos2.row][pos1.col];
+            }
+        }
+    }
+    
+    return plaintext;
+}
+
+// ==================== UI HANDLERS ====================
+
+function handleEncrypt() {
     const key = keyInput.value.trim();
     const message = messageInput.value.trim();
 
@@ -76,27 +194,19 @@ async function handleEncrypt() {
         return;
     }
 
-    setLoading(true);
-
     try {
-        const response = await encryptText(key, message);
-        
-        if (response.success) {
-            resultOutput.value = response.result;
-            showStatus('Message encrypted successfully!', 'success');
-            handleGenerateKeySquare();
-        } else {
-            throw new Error(response.error || 'Encryption failed');
-        }
+        const keySquare = generateKeySquare(key);
+        const result = encrypt(keySquare, message);
+        resultOutput.value = result;
+        showStatus('Message encrypted successfully!', 'success');
+        displayKeySquare(keySquare);
     } catch (error) {
         showStatus(`Encryption error: ${error.message}`, 'error');
         resultOutput.value = '';
-    } finally {
-        setLoading(false);
     }
 }
 
-async function handleDecrypt() {
+function handleDecrypt() {
     const key = keyInput.value.trim();
     const message = resultOutput.value.trim() || messageInput.value.trim();
 
@@ -112,27 +222,19 @@ async function handleDecrypt() {
         return;
     }
 
-    setLoading(true);
-
     try {
-        const response = await decryptText(key, message);
-        
-        if (response.success) {
-            resultOutput.value = response.result;
-            showStatus('Message decrypted successfully!', 'success');
-            handleGenerateKeySquare();
-        } else {
-            throw new Error(response.error || 'Decryption failed');
-        }
+        const keySquare = generateKeySquare(key);
+        const result = decrypt(keySquare, message);
+        resultOutput.value = result;
+        showStatus('Message decrypted successfully!', 'success');
+        displayKeySquare(keySquare);
     } catch (error) {
         showStatus(`Decryption error: ${error.message}`, 'error');
         resultOutput.value = '';
-    } finally {
-        setLoading(false);
     }
 }
 
-async function handleGenerateKeySquare() {
+function handleGenerateKeySquare() {
     const key = keyInput.value.trim();
 
     if (!key) {
@@ -141,16 +243,11 @@ async function handleGenerateKeySquare() {
     }
 
     try {
-        const response = await generateKeySquare(key);
-        
-        if (response.success && response.keySquare) {
-            displayKeySquare(response.keySquare);
-        } else {
-            throw new Error(response.error || 'Failed to generate key square');
-        }
+        const keySquare = generateKeySquare(key);
+        displayKeySquare(keySquare);
+        showStatus('Key square generated!', 'success');
     } catch (error) {
         keySquareDisplay.innerHTML = `<p class="placeholder-text">Error: ${error.message}</p>`;
-        console.error('Key square error:', error);
     }
 }
 
@@ -198,19 +295,6 @@ function showStatus(message, type = '') {
     }, 5000);
 }
 
-function setLoading(loading) {
-    if (loading) {
-        document.body.classList.add('loading');
-        encryptBtn.disabled = true;
-        decryptBtn.disabled = true;
-        showStatus('Processing...', '');
-    } else {
-        document.body.classList.remove('loading');
-        encryptBtn.disabled = false;
-        decryptBtn.disabled = false;
-    }
-}
-
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -223,5 +307,6 @@ function debounce(func, wait) {
     };
 }
 
-console.log('Playfair Cipher Application loaded');
+// Initialize
+console.log('Playfair Cipher Application loaded (Client-side only)');
 showStatus('Ready - Enter a key and message to begin');
